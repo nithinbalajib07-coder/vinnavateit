@@ -1,0 +1,607 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --domain-name: "Orrin";
+    --bg-surface: #06040a;
+    --bg-surface-subtle: #0c0816;
+    --bg-card: #120c22;
+    --bg-card-hover: #1c1334;
+    --text-primary: #f5f3ff;
+    --text-secondary: #ddd6fe;
+    --text-muted: #a78bfa;
+    --accent-current: #c084fc;
+    --accent-current-light: rgba(192, 132, 252, 0.16);
+    --accent-secondary: #e879f9;
+    --border-color: rgba(168, 85, 247, 0.28);
+    --border-highlight: rgba(192, 132, 252, 0.65);
+    --theme-radius: 9999px;
+    --theme-radius-card: 1.75rem;
+    --theme-shadow: 0 8px 32px -4px rgba(0, 0, 0, 0.7), 0 0 20px -2px rgba(192, 132, 252, 0.25);
+    --current-harmonic-freq: "32.4 ψ";
+    --current-strength: 92%;
+  }
+
+  [data-domain="tidereach"] {
+    --domain-name: "Tidereach";
+    --bg-surface: #050f18;
+    --bg-surface-subtle: #091927;
+    --bg-card: #0d2235;
+    --bg-card-hover: #132d46;
+    --text-primary: #ecfeff;
+    --text-secondary: #99f6e4;
+    --text-muted: #5eead4;
+    --accent-current: #00f0ff;
+    --accent-current-light: rgba(0, 240, 255, 0.15);
+    --accent-secondary: #fbbf24;
+    --border-color: rgba(6, 182, 212, 0.25);
+    --border-highlight: rgba(0, 240, 255, 0.55);
+    --theme-radius: 9999px;
+    --theme-radius-card: 1.75rem;
+    --theme-shadow: 0 10px 36px -4px rgba(0, 0, 0, 0.6), 0 0 20px -2px rgba(0, 240, 255, 0.25);
+    --current-harmonic-freq: "32.4 ψ";
+  }
+
+  [data-domain="skydrift"] {
+    --domain-name: "Skydrift";
+    --bg-surface: #070e1e;
+    --bg-surface-subtle: #0c1830;
+    --bg-card: #102142;
+    --bg-card-hover: #162c57;
+    --text-primary: #f0fdf4;
+    --text-secondary: #bae6fd;
+    --text-muted: #7dd3fc;
+    --accent-current: #38bdf8;
+    --accent-current-light: rgba(56, 189, 248, 0.15);
+    --accent-secondary: #c084fc;
+    --border-color: rgba(56, 189, 248, 0.25);
+    --border-highlight: rgba(129, 140, 248, 0.55);
+    --theme-radius: 9999px;
+    --theme-radius-card: 1.75rem;
+    --theme-shadow: 0 10px 36px -4px rgba(0, 0, 0, 0.6), 0 0 20px -2px rgba(56, 189, 248, 0.25);
+    --current-harmonic-freq: "41.0 ψ";
+  }
+
+  [data-domain="stonemarch"] {
+    --domain-name: "Stonemarch";
+    --bg-surface: #0a110d;
+    --bg-surface-subtle: #101c15;
+    --bg-card: #14241b;
+    --bg-card-hover: #1a3024;
+    --text-primary: #ecfdf5;
+    --text-secondary: #a7f3d0;
+    --text-muted: #6ee7b7;
+    --accent-current: #10b981;
+    --accent-current-light: rgba(16, 185, 129, 0.15);
+    --accent-secondary: #f59e0b;
+    --border-color: rgba(16, 185, 129, 0.25);
+    --border-highlight: rgba(52, 211, 153, 0.55);
+    --theme-radius: 9999px;
+    --theme-radius-card: 1.75rem;
+    --theme-shadow: 0 10px 36px -4px rgba(0, 0, 0, 0.6), 0 0 20px -2px rgba(16, 185, 129, 0.25);
+    --current-harmonic-freq: "18.6 ψ";
+  }
+
+  [data-domain="emberhold"] {
+    --domain-name: "Emberhold";
+    --bg-surface: #140808;
+    --bg-surface-subtle: #200d0d;
+    --bg-card: #291212;
+    --bg-card-hover: #361818;
+    --text-primary: #fff1f2;
+    --text-secondary: #fecdd3;
+    --text-muted: #fda4af;
+    --accent-current: #f43f5e;
+    --accent-current-light: rgba(244, 63, 94, 0.15);
+    --accent-secondary: #f97316;
+    --border-color: rgba(244, 63, 94, 0.25);
+    --border-highlight: rgba(251, 113, 133, 0.55);
+    --theme-radius: 9999px;
+    --theme-radius-card: 1.75rem;
+    --theme-shadow: 0 10px 36px -4px rgba(0, 0, 0, 0.6), 0 0 20px -2px rgba(244, 63, 94, 0.25);
+    --current-harmonic-freq: "68.2 ψ";
+  }
+
+  html, body {
+    width: 100%;
+    min-height: 100vh;
+    margin: 0;
+    padding: 0;
+    background-color: var(--bg-surface);
+    color: var(--text-primary);
+    font-family: 'Newsreader', Georgia, serif;
+    transition: background-color 0.5s ease, color 0.5s ease;
+    overflow-x: hidden;
+  }
+
+  #root {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    background-color: var(--bg-surface);
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Newsreader', Georgia, serif;
+    color: var(--text-primary);
+  }
+
+  .font-sans, .font-label, button, input, select, textarea {
+    font-family: 'Be Vietnam Pro', system-ui, -apple-system, sans-serif;
+  }
+
+  .font-serif, .font-codex {
+    font-family: 'Newsreader', Georgia, serif;
+  }
+}
+
+/* Dark starry cosmos / parchment texture */
+.dark-parchment-texture {
+  background-image: 
+    radial-gradient(circle at 15% 25%, rgba(192, 132, 252, 0.04) 0%, transparent 40%),
+    radial-gradient(circle at 85% 75%, rgba(168, 85, 247, 0.05) 0%, transparent 45%),
+    radial-gradient(circle at 50% 50%, rgba(216, 180, 254, 0.02) 0%, transparent 60%);
+}
+
+/* Capsule Box styling utilities */
+.capsule-box {
+  border-radius: 9999px;
+}
+
+.capsule-card {
+  border-radius: 2rem;
+}
+
+/* Elemental Theme Ambient Particle & Glow Keyframes */
+@keyframes bubble-rise {
+  0% { transform: translateY(0) scale(0.9); opacity: 0.2; }
+  50% { opacity: 0.6; }
+  100% { transform: translateY(-30px) scale(1.1); opacity: 0; }
+}
+
+@keyframes cloud-drift {
+  0% { transform: translateX(-15px); opacity: 0.2; }
+  50% { opacity: 0.5; }
+  100% { transform: translateX(15px); opacity: 0.2; }
+}
+
+@keyframes ember-rise {
+  0% { transform: translateY(0) translateX(0) scale(0.8); opacity: 0.3; }
+  50% { opacity: 0.8; transform: translateY(-18px) translateX(4px) scale(1.1); }
+  100% { transform: translateY(-36px) translateX(-3px) scale(0.6); opacity: 0; }
+}
+
+@keyframes earth-pulse {
+  0%, 100% { opacity: 0.3; filter: drop-shadow(0 0 4px rgba(16, 185, 129, 0.3)); }
+  50% { opacity: 0.7; filter: drop-shadow(0 0 10px rgba(16, 185, 129, 0.6)); }
+}
+
+/* 1. Fire Burning Animations */
+@keyframes flame-dance-1 {
+  0%, 100% { transform: scaleY(1) skewX(-2deg); filter: drop-shadow(0 0 8px rgba(249, 115, 22, 0.8)); }
+  35% { transform: scaleY(1.18) skewX(3deg); filter: drop-shadow(0 0 14px rgba(239, 68, 68, 0.9)); }
+  70% { transform: scaleY(0.92) skewX(-4deg); filter: drop-shadow(0 0 10px rgba(245, 158, 11, 0.85)); }
+}
+
+@keyframes flame-dance-2 {
+  0%, 100% { transform: scaleY(1.08) skewX(3deg); filter: drop-shadow(0 0 12px rgba(239, 68, 68, 0.9)); }
+  45% { transform: scaleY(0.88) skewX(-2deg); filter: drop-shadow(0 0 8px rgba(249, 115, 22, 0.8)); }
+  80% { transform: scaleY(1.22) skewX(4deg); filter: drop-shadow(0 0 16px rgba(245, 158, 11, 0.95)); }
+}
+
+@keyframes flame-dance-3 {
+  0%, 100% { transform: scaleY(0.94) skewX(-3deg); }
+  50% { transform: scaleY(1.24) skewX(2deg); }
+}
+
+@keyframes flame-core-pulse {
+  0%, 100% { transform: scale(1); opacity: 0.9; }
+  50% { transform: scale(1.12); opacity: 1; filter: drop-shadow(0 0 8px #fef08a); }
+}
+
+/* 2. Plants Growing & Blooming Animations */
+@keyframes plant-stem-grow {
+  0% { transform: scaleY(0.3) translateY(30px); opacity: 0.6; }
+  50% { transform: scaleY(1.03) translateY(-1px); opacity: 1; }
+  100% { transform: scaleY(1) translateY(0); opacity: 1; }
+}
+
+@keyframes leaf-sway-left {
+  0%, 100% { transform: rotate(-24deg) scale(1); }
+  50% { transform: rotate(-14deg) scale(1.05); }
+}
+
+@keyframes leaf-sway-right {
+  0%, 100% { transform: rotate(24deg) scale(1); }
+  50% { transform: rotate(14deg) scale(1.05); }
+}
+
+@keyframes spore-float-up {
+  0% { transform: translateY(0) translateX(0); opacity: 0; }
+  25% { opacity: 0.8; }
+  75% { opacity: 0.6; }
+  100% { transform: translateY(-38px) translateX(12px); opacity: 0; }
+}
+
+/* 3. Rigorous Beach Waves Washing & Surging Animations */
+@keyframes beach-wave-roll-1 {
+  0% { transform: translateY(22px) scaleY(0.7) rotate(1deg); opacity: 0.7; }
+  35% { transform: translateY(-24px) scaleY(1.35) rotate(-2deg); opacity: 1; }
+  65% { transform: translateY(8px) scaleY(0.9) rotate(0deg); opacity: 0.85; }
+  100% { transform: translateY(22px) scaleY(0.7) rotate(1deg); opacity: 0.7; }
+}
+
+@keyframes beach-wave-roll-2 {
+  0% { transform: translateY(18px) scaleY(0.75) rotate(-1.5deg); opacity: 0.6; }
+  45% { transform: translateY(-28px) scaleY(1.4) rotate(2deg); opacity: 0.95; }
+  75% { transform: translateY(6px) scaleY(0.85) rotate(-0.5deg); opacity: 0.75; }
+  100% { transform: translateY(18px) scaleY(0.75) rotate(-1.5deg); opacity: 0.6; }
+}
+
+@keyframes beach-wave-roll-3 {
+  0% { transform: translateY(14px) scaleY(0.8); opacity: 0.5; }
+  50% { transform: translateY(-22px) scaleY(1.25); opacity: 0.9; }
+  85% { transform: translateY(8px) scaleY(0.85); opacity: 0.65; }
+  100% { transform: translateY(14px) scaleY(0.8); opacity: 0.5; }
+}
+
+@keyframes beach-foam-fade {
+  0%, 100% { opacity: 0.2; transform: scaleX(0.9) translateY(4px); }
+  35% { opacity: 1; transform: scaleX(1.1) translateY(-6px); filter: drop-shadow(0 0 10px rgba(255,255,255,0.95)); }
+  70% { opacity: 0.5; transform: scaleX(1.02) translateY(2px); }
+}
+
+@keyframes sea-spray-burst {
+  0% { transform: translateY(0) scale(0.6); opacity: 0; }
+  30% { transform: translateY(-26px) scale(1.2); opacity: 1; }
+  100% { transform: translateY(-48px) scale(0.3); opacity: 0; }
+}
+
+/* 4. Wind Blowing in Grassland Animations */
+@keyframes grass-blade-sway-1 {
+  0%, 100% { transform: rotate(4deg); }
+  35% { transform: rotate(26deg); }
+  70% { transform: rotate(10deg); }
+}
+
+@keyframes grass-blade-sway-2 {
+  0%, 100% { transform: rotate(-2deg); }
+  45% { transform: rotate(22deg); }
+  80% { transform: rotate(2deg); }
+}
+
+@keyframes grass-blade-sway-3 {
+  0%, 100% { transform: rotate(6deg); }
+  40% { transform: rotate(30deg); }
+  75% { transform: rotate(12deg); }
+}
+
+@keyframes wind-gust-glide {
+  0% { transform: translateX(-110%); opacity: 0; }
+  20% { opacity: 0.7; }
+  80% { opacity: 0.7; }
+  100% { transform: translateX(120%); opacity: 0; }
+}
+
+@keyframes dandelion-seed-drift {
+  0% { transform: translate(-20px, 12px) rotate(0deg); opacity: 0; }
+  15% { opacity: 0.85; }
+  85% { opacity: 0.85; }
+  100% { transform: translate(140px, -24px) rotate(180deg); opacity: 0; }
+}
+
+.animate-bubble-1 { animation: bubble-rise 4s infinite ease-in-out; }
+.animate-bubble-2 { animation: bubble-rise 3.2s infinite ease-in-out 1.2s; }
+.animate-bubble-3 { animation: bubble-rise 4.8s infinite ease-in-out 2.4s; }
+
+.animate-cloud-drift { animation: cloud-drift 8s infinite ease-in-out alternate; }
+
+.animate-ember-1 { animation: ember-rise 2.8s infinite ease-out; }
+.animate-ember-2 { animation: ember-rise 3.4s infinite ease-out 1s; }
+.animate-ember-3 { animation: ember-rise 2.2s infinite ease-out 1.7s; }
+
+.animate-earth-pulse { animation: earth-pulse 4s infinite ease-in-out; }
+
+/* Elemental Sparkle Animations - Continuous Upward Floating Effect */
+@keyframes sparkle-twinkle-fast {
+  0% { transform: translateY(30px) scale(0.4) rotate(0deg); opacity: 0; filter: drop-shadow(0 0 2px currentColor); }
+  20% { opacity: 1; filter: drop-shadow(0 0 8px currentColor); }
+  50% { transform: translateY(-70px) scale(1.15) rotate(45deg); opacity: 0.95; }
+  80% { opacity: 0.8; }
+  100% { transform: translateY(-190px) scale(0.4) rotate(90deg); opacity: 0; }
+}
+
+@keyframes sparkle-twinkle-mid {
+  0% { transform: translateY(40px) scale(0.45) rotate(-15deg); opacity: 0; }
+  25% { opacity: 0.95; filter: drop-shadow(0 0 10px currentColor); }
+  50% { transform: translateY(-90px) scale(1.1) rotate(25deg); opacity: 0.9; }
+  80% { opacity: 0.75; }
+  100% { transform: translateY(-230px) scale(0.45) rotate(50deg); opacity: 0; }
+}
+
+@keyframes sparkle-twinkle-slow {
+  0% { transform: translateY(50px) scale(0.5) rotate(0deg); opacity: 0; }
+  20% { opacity: 1; filter: drop-shadow(0 0 14px currentColor); }
+  50% { transform: translateY(-110px) scale(1.22) rotate(60deg); opacity: 0.9; }
+  80% { opacity: 0.7; }
+  100% { transform: translateY(-280px) scale(0.55) rotate(120deg); opacity: 0; }
+}
+
+@keyframes sparkle-drift-up {
+  0% { transform: translateY(40px) scale(0.65); opacity: 0; }
+  20% { opacity: 0.95; }
+  75% { opacity: 0.9; }
+  100% { transform: translateY(-240px) scale(1.15); opacity: 0; }
+}
+
+@keyframes sparkle-drift-wind {
+  0% { transform: translate(-30px, 40px) scale(0.65); opacity: 0; }
+  20% { opacity: 0.95; }
+  50% { transform: translate(30px, -100px) scale(1.1); opacity: 0.9; }
+  80% { opacity: 0.8; }
+  100% { transform: translate(80px, -240px) scale(1.15); opacity: 0; }
+}
+
+@keyframes sparkle-halo-pulse {
+  0% { transform: translateY(30px) scale(0.6); opacity: 0; }
+  25% { opacity: 0.85; }
+  50% { transform: translateY(-80px) scale(1.3); opacity: 0.75; }
+  80% { opacity: 0.6; }
+  100% { transform: translateY(-200px) scale(1.5); opacity: 0; }
+}
+
+@keyframes sparkle-crystal-glint {
+  0% { transform: translateY(30px) scale(0.55) rotate(30deg); opacity: 0; }
+  25% { opacity: 1; filter: drop-shadow(0 0 12px currentColor); }
+  50% { transform: translateY(-85px) scale(1.2) rotate(55deg); opacity: 0.9; }
+  80% { opacity: 0.7; }
+  100% { transform: translateY(-220px) scale(0.55) rotate(90deg); opacity: 0; }
+}
+
+.animate-sparkle-fast { animation: sparkle-twinkle-fast 4.5s infinite ease-out; }
+.animate-sparkle-mid { animation: sparkle-twinkle-mid 6s infinite ease-out; }
+.animate-sparkle-slow { animation: sparkle-twinkle-slow 8s infinite ease-out; }
+.animate-sparkle-drift-up { animation: sparkle-drift-up 5s infinite ease-out; }
+.animate-sparkle-drift-wind { animation: sparkle-drift-wind 6.5s infinite ease-out; }
+.animate-sparkle-halo { animation: sparkle-halo-pulse 6s infinite ease-out; }
+.animate-sparkle-crystal { animation: sparkle-crystal-glint 5.5s infinite ease-out; }
+
+
+/* Border boundary glitch / signal dampening flicker */
+@keyframes ledger-flicker {
+  0% { opacity: 1; filter: contrast(1); }
+  35% { opacity: 0.92; filter: contrast(0.95); }
+  38% { opacity: 0.82; filter: contrast(0.9); }
+  42% { opacity: 0.98; filter: contrast(1); }
+  72% { opacity: 0.88; filter: contrast(0.94); }
+  76% { opacity: 0.84; }
+  100% { opacity: 1; filter: contrast(1); }
+}
+
+.fading-current-static {
+  animation: ledger-flicker 4.5s infinite ease-in-out;
+}
+
+/* Custom Scrollbars suited for luminous dark ledger */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(56, 189, 248, 0.25);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 240, 255, 0.5);
+}
+
+/* Custom Smooth Range Slider */
+.smooth-range {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 8px;
+  border-radius: 9999px;
+  outline: none;
+  cursor: pointer;
+  transition: background 0.1s linear;
+}
+
+.smooth-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #d8b4fe;
+  border: 2.5px solid #ffffff;
+  box-shadow: 0 0 14px rgba(192, 132, 252, 0.9), 0 2px 6px rgba(0, 0, 0, 0.7);
+  cursor: grab;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.smooth-range::-webkit-slider-thumb:hover {
+  transform: scale(1.18);
+  background: #f3e8ff;
+  box-shadow: 0 0 20px rgba(216, 180, 254, 1), 0 2px 8px rgba(0, 0, 0, 0.8);
+}
+
+.smooth-range::-webkit-slider-thumb:active {
+  cursor: grabbing;
+  transform: scale(1.05);
+}
+
+.smooth-range::-moz-range-thumb {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #d8b4fe;
+  border: 2.5px solid #ffffff;
+  box-shadow: 0 0 14px rgba(192, 132, 252, 0.9), 0 2px 6px rgba(0, 0, 0, 0.7);
+  cursor: grab;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.smooth-range::-moz-range-thumb:hover {
+  transform: scale(1.18);
+  background: #f3e8ff;
+  box-shadow: 0 0 20px rgba(216, 180, 254, 1), 0 2px 8px rgba(0, 0, 0, 0.8);
+}
+
+/* 5. Realistic Waterfall Pouring Animations */
+@keyframes waterfall-flow {
+  0% { transform: translateY(-100%); }
+  100% { transform: translateY(100%); }
+}
+
+@keyframes waterfall-plunge-splash {
+  0%, 100% { transform: scaleY(0.85) scaleX(1); opacity: 0.8; }
+  50% { transform: scaleY(1.35) scaleX(1.15); opacity: 1; filter: drop-shadow(0 0 16px rgba(165,243,252,0.9)); }
+}
+
+@keyframes waterfall-mist-rise {
+  0% { transform: translateY(0) scale(0.7); opacity: 0; }
+  35% { opacity: 0.7; }
+  100% { transform: translateY(-80px) scale(1.5); opacity: 0; }
+}
+
+/* 6. Realistic Tree Growing Animations */
+@keyframes tree-growth-stem {
+  0% { transform: scaleY(0.15) scaleX(0.7); opacity: 0.3; }
+  45% { transform: scaleY(0.75) scaleX(0.9); opacity: 0.85; }
+  100% { transform: scaleY(1) scaleX(1); opacity: 1; }
+}
+
+@keyframes tree-canopy-bloom {
+  0% { transform: scale(0.2); opacity: 0; }
+  50% { transform: scale(0.75); opacity: 0.7; }
+  100% { transform: scale(1); opacity: 0.95; }
+}
+
+@keyframes tree-branch-sway {
+  0%, 100% { transform: rotate(-2deg); }
+  50% { transform: rotate(2deg); }
+}
+
+@keyframes leaf-spore-drift {
+  0% { transform: translate(0, 0) rotate(0deg); opacity: 0; }
+  20% { opacity: 0.85; }
+  80% { opacity: 0.75; }
+  100% { transform: translate(45px, -60px) rotate(140deg); opacity: 0; }
+}
+
+/* 7. Realistic Storm Animations */
+@keyframes storm-vortex-spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@keyframes storm-vortex-reverse {
+  0% { transform: rotate(360deg); }
+  100% { transform: rotate(0deg); }
+}
+
+@keyframes storm-gale-shear {
+  0% { transform: translateX(-140%) skewX(-18deg); opacity: 0; }
+  20% { opacity: 0.85; }
+  80% { opacity: 0.85; }
+  100% { transform: translateX(180%) skewX(-18deg); opacity: 0; }
+}
+
+@keyframes storm-lightning-flash {
+  0%, 88%, 92%, 96%, 100% { opacity: 0; }
+  89%, 93% { opacity: 0.7; }
+  90% { opacity: 0.2; }
+  95% { opacity: 0.95; }
+}
+
+/* ============================================================
+   Tongue Shifter: Unique Elemental Typography & Dual-Tone Vibrancy
+   Water = fluid wave-italic calligraphy (Cormorant Garamond + Quicksand)
+   Air   = featherlight, expansive atmospheric spacing (Josefin Sans + Nunito)
+   Earth = monolithic, bedrock carved-stone runes (Cinzel + Crimson Pro)
+   Fire  = sharp incandescent slagway runes (Eczar + Rajdhani)
+   ============================================================ */
+.ts-themed[data-ts-element="water"] {
+  --ts-heading-font: 'Cormorant Garamond', Georgia, serif;
+  --ts-heading-weight: 700;
+  --ts-heading-tracking: 0.03em;
+  --ts-heading-transform: none;
+  --ts-heading-style: italic;
+  --ts-body-font: 'Quicksand', system-ui, sans-serif;
+  --ts-label-font: 'Quicksand', system-ui, sans-serif;
+  --ts-label-tracking: 0.06em;
+  --ts-quote-glow: 0 0 18px rgba(6, 182, 212, 0.75), 0 2px 6px rgba(0, 0, 0, 0.95);
+  --ts-element-border-glow: 0 0 25px rgba(6, 182, 212, 0.35);
+}
+
+.ts-themed[data-ts-element="air"] {
+  --ts-heading-font: 'Josefin Sans', system-ui, sans-serif;
+  --ts-heading-weight: 700;
+  --ts-heading-tracking: 0.18em;
+  --ts-heading-transform: uppercase;
+  --ts-heading-style: normal;
+  --ts-body-font: 'Nunito', system-ui, sans-serif;
+  --ts-label-font: 'Josefin Sans', system-ui, sans-serif;
+  --ts-label-tracking: 0.16em;
+  --ts-quote-glow: 0 0 22px rgba(56, 189, 248, 0.8), 0 0 8px rgba(255, 255, 255, 0.6), 0 2px 4px rgba(0, 0, 0, 0.9);
+  --ts-element-border-glow: 0 0 25px rgba(56, 189, 248, 0.35);
+}
+
+.ts-themed[data-ts-element="earth"] {
+  --ts-heading-font: 'Cinzel', Georgia, serif;
+  --ts-heading-weight: 800;
+  --ts-heading-tracking: 0.06em;
+  --ts-heading-transform: uppercase;
+  --ts-heading-style: normal;
+  --ts-body-font: 'Crimson Pro', Georgia, serif;
+  --ts-label-font: 'Cinzel', Georgia, serif;
+  --ts-label-tracking: 0.04em;
+  --ts-quote-glow: 0 0 16px rgba(16, 185, 129, 0.8), 2px 2px 0px rgba(0, 0, 0, 0.95), 0 4px 10px rgba(0, 0, 0, 0.9);
+  --ts-element-border-glow: 0 0 25px rgba(16, 185, 129, 0.35);
+}
+
+.ts-themed[data-ts-element="fire"] {
+  --ts-heading-font: 'Eczar', Georgia, serif;
+  --ts-heading-weight: 800;
+  --ts-heading-tracking: 0.05em;
+  --ts-heading-transform: uppercase;
+  --ts-heading-style: normal;
+  --ts-body-font: 'Rajdhani', system-ui, sans-serif;
+  --ts-label-font: 'Rajdhani', system-ui, sans-serif;
+  --ts-label-tracking: 0.12em;
+  --ts-quote-glow: 0 0 18px rgba(249, 115, 22, 0.95), 0 0 32px rgba(239, 68, 68, 0.6), 0 2px 6px rgba(0, 0, 0, 0.95);
+  --ts-element-border-glow: 0 0 30px rgba(249, 115, 22, 0.4);
+}
+
+.ts-themed .font-serif,
+.ts-themed .font-codex,
+.ts-themed input,
+.ts-themed textarea {
+  font-family: var(--ts-body-font);
+}
+
+.ts-themed .font-label,
+.ts-themed button {
+  font-family: var(--ts-label-font);
+}
+
+.ts-themed .font-label {
+  letter-spacing: var(--ts-label-tracking);
+}
+
+.ts-themed :is(h2, h3, .ts-display) {
+  font-family: var(--ts-heading-font);
+  font-weight: var(--ts-heading-weight);
+  letter-spacing: var(--ts-heading-tracking);
+  text-transform: var(--ts-heading-transform);
+  font-style: var(--ts-heading-style);
+}
+
+.ts-themed .ts-quote-glow {
+  text-shadow: var(--ts-quote-glow);
+}
+

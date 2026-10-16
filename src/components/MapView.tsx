@@ -327,8 +327,9 @@ export const MapView: React.FC = () => {
         playWaterfallSound();
       }
     } else if (detectedZone !== 'none') {
-      // Lingering in the same place: loop sound smoothly after completion (~2.8s)
-      if (now - lastSoundTriggerTimeRef.current > 2900) {
+      // Lingering in the same place: loop sound smoothly after completion (~5.1s for water, ~2.9s for others)
+      const loopInterval = detectedZone === 'water' ? 5100 : 2900;
+      if (now - lastSoundTriggerTimeRef.current > loopInterval) {
         lastSoundTriggerTimeRef.current = now;
         if (detectedZone === 'volcano') {
           playVolcanoSound();

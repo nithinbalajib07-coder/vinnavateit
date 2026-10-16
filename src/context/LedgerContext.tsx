@@ -41,6 +41,7 @@ interface LedgerContextType {
   playExplosionSound: () => void;
   playVolcanoSound: () => void;
   playWaterfallSound: () => void;
+  playWaterSound?: () => void;
   playWindSound: () => void;
   playBirdSound: () => void;
   stopActiveSound: () => void;
@@ -138,11 +139,13 @@ if (typeof window !== 'undefined') {
 let volcanoAudioBuffer: AudioBuffer | null = null;
 let windAudioBuffer: AudioBuffer | null = null;
 let birdAudioBuffer: AudioBuffer | null = null;
+let waterAudioBuffer: AudioBuffer | null = null;
 
 // HTMLAudioElement fallbacks
 let volcanoAudioEl: HTMLAudioElement | null = null;
 let windAudioEl: HTMLAudioElement | null = null;
 let birdAudioEl: HTMLAudioElement | null = null;
+let waterAudioEl: HTMLAudioElement | null = null;
 
 // Exclusivity tracking: only ONE audio effect may play at any time
 let activeSourceNode: AudioBufferSourceNode | null = null;
@@ -273,6 +276,10 @@ export function preloadAllCodexAudio() {
       birdAudioEl = new Audio('/forest_bird_chirp.wav');
       birdAudioEl.preload = 'auto';
     }
+    if (!waterAudioEl) {
+      waterAudioEl = new Audio('/water5sec.wav');
+      waterAudioEl.preload = 'auto';
+    }
   } catch (e) {
     console.warn('AudioElement preload init error', e);
   }
@@ -293,6 +300,11 @@ export function preloadAllCodexAudio() {
   if (!birdAudioBuffer) {
     decodeAndTrimAudio(ctx, '/forest_bird_chirp.wav', 2.8, (buf) => {
       birdAudioBuffer = buf;
+    });
+  }
+  if (!waterAudioBuffer) {
+    decodeAndTrimAudio(ctx, '/water5sec.wav', 5.0, (buf) => {
+      waterAudioBuffer = buf;
     });
   }
 }
@@ -550,6 +562,89 @@ function playProceduralForestBirds() {
   });
 }
 
+// Procedural roaring waterfall cascade synthesis (fallback)
+function playProceduralWaterfall() {
+  playSafeSound((ctx, now, dest) => {
+    const dur = 5.0;
+    const bufferSize = Math.floor(ctx.sampleRate * dur);
+    const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+      data[i] = (Math.random() * 2 - 1) * 0.9;
+    }
+
+    const noise = ctx.createBufferSource();
+    noise.buffer = buffer;
+
+    // Master gain for waterfall
+    const waterfallMaster = ctx.createGain();
+    waterfallMaster.gain.setValueAtTime(1.8, now);
+
+    // 1. Deep rushing hydraulic body
+    const lowFilter = ctx.createBiquadFilter();
+    lowFilter.type = 'lowpass';
+    lowFilter.frequency.setValueAtTime(450, now);
+    lowFilter.Q.value = 1.4;
+
+    const lowGain = ctx.createGain();
+    lowGain.gain.setValueAtTime(0.01, now);
+    lowGain.gain.linearRampToValueAtTime(0.95, now + 0.2);
+    lowGain.gain.setValueAtTime(0.9, now + dur - 0.4);
+    lowGain.gain.exponentialRampToValueAtTime(0.001, now + dur);
+
+    // 2. Continuous splashing spray & froth cascade
+    const sprayFilter = ctx.createBiquadFilter();
+    sprayFilter.type = 'bandpass';
+    sprayFilter.frequency.setValueAtTime(820, now);
+    sprayFilter.Q.value = 0.9;
+
+    const sprayGain = ctx.createGain();
+    sprayGain.gain.setValueAtTime(0.01, now);
+    sprayGain.gain.linearRampToValueAtTime(0.85, now + 0.15);
+    sprayGain.gain.setValueAtTime(0.8, now + dur - 0.35);
+    sprayGain.gain.exponentialRampToValueAtTime(0.001, now + dur);
+
+    // 3. Crisp mist shimmer
+    const mistFilter = ctx.createBiquadFilter();
+    mistFilter.type = 'highpass';
+    mistFilter.frequency.setValueAtTime(1600, now);
+    mistFilter.Q.value = 0.7;
+
+    const mistGain = ctx.createGain();
+    mistGain.gain.setValueAtTime(0.01, now);
+    mistGain.gain.linearRampToValueAtTime(0.45, now + 0.25);
+    mistGain.gain.setValueAtTime(0.4, now + dur - 0.35);
+    mistGain.gain.exponentialRampToValueAtTime(0.001, now + dur);
+
+    noise.connect(lowFilter);
+    lowFilter.connect(lowGain);
+    lowGain.connect(waterfallMaster);
+
+    noise.connect(sprayFilter);
+    sprayFilter.connect(sprayGain);
+    sprayGain.connect(waterfallMaster);
+
+    noise.connect(mistFilter);
+    mistFilter.connect(mistGain);
+    mistGain.connect(waterfallMaster);
+
+    waterfallMaster.connect(dest);
+
+    activeSourceNode = noise;
+    activeGainNode = waterfallMaster;
+
+    noise.onended = () => {
+      if (activeSourceNode === noise) {
+        activeSourceNode = null;
+        activeGainNode = null;
+      }
+    };
+
+    noise.start(now);
+    noise.stop(now + dur);
+  });
+}
+
 function createProceduralAudio() {
   if (typeof window === 'undefined') {
     return {
@@ -679,88 +774,16 @@ function createProceduralAudio() {
     bomb: () => {
       audio.volcano();
     },
-    // Roaring waterfall cascade with deep rushing body and splashing froth
+    // 5-second realistic water sound effect from water5sec.wav with procedural fallback
     waterfall: () => {
-      stopActiveSound(25);
-      playSafeSound((ctx, now, dest) => {
-        const dur = 2.8;
-        const bufferSize = Math.floor(ctx.sampleRate * dur);
-        const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
-        const data = buffer.getChannelData(0);
-        for (let i = 0; i < bufferSize; i++) {
-          data[i] = (Math.random() * 2 - 1) * 0.9;
-        }
-
-        const noise = ctx.createBufferSource();
-        noise.buffer = buffer;
-
-        // Master gain for waterfall
-        const waterfallMaster = ctx.createGain();
-        waterfallMaster.gain.setValueAtTime(1.8, now);
-
-        // 1. Deep rushing hydraulic body
-        const lowFilter = ctx.createBiquadFilter();
-        lowFilter.type = 'lowpass';
-        lowFilter.frequency.setValueAtTime(450, now);
-        lowFilter.Q.value = 1.4;
-
-        const lowGain = ctx.createGain();
-        lowGain.gain.setValueAtTime(0.01, now);
-        lowGain.gain.linearRampToValueAtTime(0.95, now + 0.2);
-        lowGain.gain.setValueAtTime(0.9, now + dur - 0.4);
-        lowGain.gain.exponentialRampToValueAtTime(0.001, now + dur);
-
-        // 2. Continuous splashing spray & froth cascade
-        const sprayFilter = ctx.createBiquadFilter();
-        sprayFilter.type = 'bandpass';
-        sprayFilter.frequency.setValueAtTime(820, now);
-        sprayFilter.Q.value = 0.9;
-
-        const sprayGain = ctx.createGain();
-        sprayGain.gain.setValueAtTime(0.01, now);
-        sprayGain.gain.linearRampToValueAtTime(0.85, now + 0.15);
-        sprayGain.gain.setValueAtTime(0.8, now + dur - 0.35);
-        sprayGain.gain.exponentialRampToValueAtTime(0.001, now + dur);
-
-        // 3. Crisp mist shimmer
-        const mistFilter = ctx.createBiquadFilter();
-        mistFilter.type = 'highpass';
-        mistFilter.frequency.setValueAtTime(1600, now);
-        mistFilter.Q.value = 0.7;
-
-        const mistGain = ctx.createGain();
-        mistGain.gain.setValueAtTime(0.01, now);
-        mistGain.gain.linearRampToValueAtTime(0.45, now + 0.25);
-        mistGain.gain.setValueAtTime(0.4, now + dur - 0.35);
-        mistGain.gain.exponentialRampToValueAtTime(0.001, now + dur);
-
-        noise.connect(lowFilter);
-        lowFilter.connect(lowGain);
-        lowGain.connect(waterfallMaster);
-
-        noise.connect(sprayFilter);
-        sprayFilter.connect(sprayGain);
-        sprayGain.connect(waterfallMaster);
-
-        noise.connect(mistFilter);
-        mistFilter.connect(mistGain);
-        mistGain.connect(waterfallMaster);
-
-        waterfallMaster.connect(dest);
-
-        activeSourceNode = noise;
-        activeGainNode = waterfallMaster;
-
-        noise.onended = () => {
-          if (activeSourceNode === noise) {
-            activeSourceNode = null;
-            activeGainNode = null;
-          }
-        };
-
-        noise.start(now);
-        noise.stop(now + dur);
-      });
+      playExclusiveTrack(
+        () => waterAudioBuffer,
+        () => waterAudioEl,
+        '/water5sec.wav',
+        5.0,
+        2.0,
+        playProceduralWaterfall
+      );
     },
     // Howling mountain wind blowing sound with procedural fallback
     wind: () => {
@@ -871,6 +894,7 @@ export const LedgerProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   const playWaterfallSound = () => {
     if (soundEnabled) audio.waterfall();
   };
+  const playWaterSound = playWaterfallSound;
 
   const playWindSound = () => {
     if (soundEnabled) audio.wind();
@@ -1054,6 +1078,7 @@ export const LedgerProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         playExplosionSound,
         playVolcanoSound,
         playWaterfallSound,
+        playWaterSound,
         playWindSound,
         playBirdSound,
         stopActiveSound,

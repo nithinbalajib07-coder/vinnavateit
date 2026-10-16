@@ -49,6 +49,8 @@ interface LedgerContextType {
 const LedgerContext = createContext<LedgerContextType | undefined>(undefined);
 
 let sharedAudioCtx: AudioContext | null = null;
+let masterCompressorNode: DynamicsCompressorNode | null = null;
+let masterGainNode: GainNode | null = null;
 
 export function getSharedAudioContext(): AudioContext | null {
   if (typeof window === 'undefined') return null;
@@ -70,7 +72,33 @@ export function getSharedAudioContext(): AudioContext | null {
   }
 }
 
-export function playSafeSound(playFn: (ctx: AudioContext, now: number) => void) {
+// Studio-grade limiter and compressor to deliver loud, punchy, unclipped audio
+export function getMasterAudioDestination(ctx: AudioContext): AudioNode {
+  if (!masterCompressorNode || !masterGainNode || masterCompressorNode.context !== ctx) {
+    try {
+      const comp = ctx.createDynamicsCompressor();
+      comp.threshold.setValueAtTime(-14, ctx.currentTime);
+      comp.knee.setValueAtTime(8, ctx.currentTime);
+      comp.ratio.setValueAtTime(6, ctx.currentTime);
+      comp.attack.setValueAtTime(0.003, ctx.currentTime);
+      comp.release.setValueAtTime(0.15, ctx.currentTime);
+
+      const master = ctx.createGain();
+      master.gain.setValueAtTime(2.2, ctx.currentTime); // High-gain master volume boost
+
+      comp.connect(master);
+      master.connect(ctx.destination);
+
+      masterCompressorNode = comp;
+      masterGainNode = master;
+    } catch (_) {
+      return ctx.destination;
+    }
+  }
+  return masterCompressorNode;
+}
+
+export function playSafeSound(playFn: (ctx: AudioContext, now: number, dest: AudioNode) => void) {
   if (typeof window === 'undefined') return;
   const ctx = getSharedAudioContext();
   if (!ctx) return;
@@ -81,7 +109,8 @@ export function playSafeSound(playFn: (ctx: AudioContext, now: number) => void) 
 
   try {
     const now = ctx.currentTime + 0.01;
-    playFn(ctx, now);
+    const dest = getMasterAudioDestination(ctx);
+    playFn(ctx, now, dest);
   } catch (e) {
     console.warn('Procedural audio execution error', e);
   }
@@ -93,10 +122,12 @@ if (typeof window !== 'undefined') {
     if (ctx && ctx.state === 'suspended') {
       ctx.resume().catch(() => {});
     }
+    preloadAllCodexAudio();
   };
   ['click', 'touchstart', 'keydown', 'pointerdown'].forEach((evt) => {
     window.addEventListener(evt, unlockAudio, { passive: true });
   });
+  setTimeout(() => preloadAllCodexAudio(), 100);
 }
 
 // Audio buffers for decoded high-fidelity sound effects
@@ -166,7 +197,7 @@ export function stopActiveSound(fadeMs: number = 25) {
   }
 }
 
-// Helper to decode and trim an audio asset to target duration with smooth cosine fade-out
+// Helper to decode and trim an audio asset to target duration with volume normalization and smooth cosine fade-out
 function decodeAndTrimAudio(
   ctx: AudioContext,
   url: string,
@@ -187,10 +218,23 @@ function decodeAndTrimAudio(
         decoded.sampleRate
       );
 
+      // Find peak amplitude across channels to normalize and maximize loudness
+      let maxPeak = 0;
+      for (let ch = 0; ch < decoded.numberOfChannels; ch++) {
+        const srcData = decoded.getChannelData(ch);
+        for (let i = 0; i < targetLength; i++) {
+          const val = Math.abs(srcData[i]);
+          if (val > maxPeak) maxPeak = val;
+        }
+      }
+      const normFactor = maxPeak > 0.02 ? Math.min(2.5, 0.98 / maxPeak) : 1.0;
+
       for (let ch = 0; ch < decoded.numberOfChannels; ch++) {
         const srcData = decoded.getChannelData(ch);
         const destData = trimmed.getChannelData(ch);
-        destData.set(srcData.subarray(0, targetLength));
+        for (let i = 0; i < targetLength; i++) {
+          destData[i] = srcData[i] * normFactor;
+        }
 
         // Smooth cosine fade-out over final 0.35s
         const fadeSamples = Math.floor(decoded.sampleRate * 0.35);
@@ -258,11 +302,11 @@ function playExclusiveTrack(
   getAudioEl: () => HTMLAudioElement | null,
   url: string,
   durationSec: number = 2.8,
-  volume: number = 1.0,
+  volume: number = 2.4,
   fallbackProcedural?: () => void
 ) {
   // 1. Instantly stop any previous audio
-  stopActiveSound(25);
+  stopActiveSound(20);
 
   const ctx = getSharedAudioContext();
   if (ctx && ctx.state === 'suspended') {
@@ -271,7 +315,7 @@ function playExclusiveTrack(
 
   const buffer = getBuffer();
 
-  // 2. Play using decoded Web Audio buffer for true 0-latency and exact envelope control
+  // 2. Play using decoded Web Audio buffer for true 0-latency, boosted loudness, and exact envelope control
   if (ctx && buffer) {
     try {
       const now = ctx.currentTime;
@@ -281,8 +325,9 @@ function playExclusiveTrack(
       const gain = ctx.createGain();
       gain.gain.setValueAtTime(volume, now);
 
+      const dest = getMasterAudioDestination(ctx);
       source.connect(gain);
-      gain.connect(ctx.destination);
+      gain.connect(dest);
 
       activeSourceNode = source;
       activeGainNode = gain;
@@ -312,7 +357,7 @@ function playExclusiveTrack(
       }
       const sound = (el.cloneNode(true) as HTMLAudioElement) || el;
       sound.currentTime = 0;
-      sound.volume = volume;
+      sound.volume = 1.0;
       activeAudioElement = sound;
 
       const playPromise = sound.play();
@@ -345,19 +390,19 @@ function playExclusiveTrack(
   }
 }
 
-// Procedural caldera explosion synthesis (reliable fallback)
+// Procedural caldera explosion synthesis (loud & punchy fallback)
 function playProceduralCalderaExplosion() {
-  playSafeSound((ctx, now) => {
-    const dur = 1.2;
+  playSafeSound((ctx, now, dest) => {
+    const dur = 1.6;
     const bufferSize = Math.floor(ctx.sampleRate * dur);
     const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
     const data = buffer.getChannelData(0);
     for (let i = 0; i < bufferSize; i++) {
-      data[i] = (Math.random() * 2 - 1) * 0.85;
+      data[i] = (Math.random() * 2 - 1) * 0.95;
     }
 
-    const blastOffsets = [0, 0.35, 0.78];
-    const blastIntensities = [1.0, 0.85, 0.72];
+    const blastOffsets = [0, 0.32, 0.72];
+    const blastIntensities = [1.8, 1.5, 1.3];
 
     blastOffsets.forEach((offset, idx) => {
       const t = now + offset;
@@ -370,7 +415,7 @@ function playProceduralCalderaExplosion() {
       osc.frequency.exponentialRampToValueAtTime(75, t + 0.35);
 
       oscGain.gain.setValueAtTime(0.01, t);
-      oscGain.gain.linearRampToValueAtTime(0.75 * intensity, t + 0.02);
+      oscGain.gain.linearRampToValueAtTime(1.1 * intensity, t + 0.02);
       oscGain.gain.exponentialRampToValueAtTime(0.001, t + 0.8);
 
       const subOsc = ctx.createOscillator();
@@ -380,7 +425,7 @@ function playProceduralCalderaExplosion() {
       subOsc.frequency.exponentialRampToValueAtTime(65, t + 0.5);
 
       subGain.gain.setValueAtTime(0.01, t);
-      subGain.gain.linearRampToValueAtTime(0.6 * intensity, t + 0.03);
+      subGain.gain.linearRampToValueAtTime(0.95 * intensity, t + 0.03);
       subGain.gain.exponentialRampToValueAtTime(0.001, t + 0.9);
 
       const noise = ctx.createBufferSource();
@@ -394,17 +439,17 @@ function playProceduralCalderaExplosion() {
 
       const noiseGain = ctx.createGain();
       noiseGain.gain.setValueAtTime(0.01, t);
-      noiseGain.gain.linearRampToValueAtTime(0.9 * intensity, t + 0.03);
+      noiseGain.gain.linearRampToValueAtTime(1.3 * intensity, t + 0.03);
       noiseGain.gain.exponentialRampToValueAtTime(0.001, t + dur);
 
       osc.connect(oscGain);
-      oscGain.connect(ctx.destination);
+      oscGain.connect(dest);
       subOsc.connect(subGain);
-      subGain.connect(ctx.destination);
+      subGain.connect(dest);
 
       noise.connect(filter);
       filter.connect(noiseGain);
-      noiseGain.connect(ctx.destination);
+      noiseGain.connect(dest);
 
       osc.start(t);
       osc.stop(t + 0.85);
@@ -412,6 +457,91 @@ function playProceduralCalderaExplosion() {
       subOsc.stop(t + 0.95);
       noise.start(t);
       noise.stop(t + dur);
+    });
+  });
+}
+
+// Procedural howling mountain wind synthesis (loud & atmospheric fallback)
+function playProceduralMountainWind() {
+  playSafeSound((ctx, now, dest) => {
+    const dur = 2.8;
+    const bufferSize = Math.floor(ctx.sampleRate * dur);
+    const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    let lastOut = 0.0;
+    for (let i = 0; i < bufferSize; i++) {
+      const white = Math.random() * 2 - 1;
+      data[i] = (lastOut + 0.02 * white) / 1.02;
+      lastOut = data[i];
+      data[i] *= 3.5;
+    }
+
+    const noise = ctx.createBufferSource();
+    noise.buffer = buffer;
+
+    const filter = ctx.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.frequency.setValueAtTime(380, now);
+    filter.frequency.exponentialRampToValueAtTime(750, now + 0.8);
+    filter.frequency.exponentialRampToValueAtTime(320, now + 1.8);
+    filter.frequency.exponentialRampToValueAtTime(520, now + 2.8);
+    filter.Q.value = 2.2;
+
+    const windGain = ctx.createGain();
+    windGain.gain.setValueAtTime(0.01, now);
+    windGain.gain.linearRampToValueAtTime(1.8, now + 0.25);
+    windGain.gain.setValueAtTime(1.6, now + dur - 0.45);
+    windGain.gain.exponentialRampToValueAtTime(0.001, now + dur);
+
+    noise.connect(filter);
+    filter.connect(windGain);
+    windGain.connect(dest);
+
+    activeSourceNode = noise;
+    activeGainNode = windGain;
+
+    noise.onended = () => {
+      if (activeSourceNode === noise) {
+        activeSourceNode = null;
+        activeGainNode = null;
+      }
+    };
+
+    noise.start(now);
+    noise.stop(now + dur);
+  });
+}
+
+// Procedural forest birds chirping synthesis (bright & crisp fallback)
+function playProceduralForestBirds() {
+  playSafeSound((ctx, now, dest) => {
+    const chirps = [
+      { start: 0.0, f1: 2800, f2: 3900, f3: 3100, dur: 0.18, vol: 1.4 },
+      { start: 0.22, f1: 3200, f2: 4400, f3: 3600, dur: 0.22, vol: 1.5 },
+      { start: 0.52, f1: 3000, f2: 4200, f3: 3400, dur: 0.2, vol: 1.3 },
+      { start: 1.1, f1: 2700, f2: 3800, f3: 3200, dur: 0.19, vol: 1.35 },
+      { start: 1.35, f1: 3300, f2: 4600, f3: 3700, dur: 0.24, vol: 1.45 },
+    ];
+
+    chirps.forEach(({ start, f1, f2, f3, dur, vol }) => {
+      const t = now + start;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+
+      osc.frequency.setValueAtTime(f1, t);
+      osc.frequency.linearRampToValueAtTime(f2, t + dur * 0.45);
+      osc.frequency.exponentialRampToValueAtTime(f3, t + dur);
+
+      gain.gain.setValueAtTime(0.01, t);
+      gain.gain.linearRampToValueAtTime(vol, t + dur * 0.2);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + dur);
+
+      osc.connect(gain);
+      gain.connect(dest);
+
+      osc.start(t);
+      osc.stop(t + dur + 0.02);
     });
   });
 }
@@ -431,149 +561,191 @@ function createProceduralAudio() {
   }
 
   return {
-    // Brass sanctuary warning bell chime with rich harmonic ring
+    // Rich resonant bronze sanctuary warning bell with deep harmonics and high loudness
     bell: () => {
-      playSafeSound((ctx, now) => {
+      stopActiveSound(20);
+      playSafeSound((ctx, now, dest) => {
         const harmonics = [
-          { f: 520, g: 0.5, dur: 2.4 },
-          { f: 1040, g: 0.28, dur: 2.0 },
-          { f: 1560, g: 0.16, dur: 1.6 },
-          { f: 2080, g: 0.08, dur: 1.2 },
+          { f: 260, g: 0.9, type: 'sine' as OscillatorType, dur: 2.8 },
+          { f: 520, g: 1.4, type: 'sine' as OscillatorType, dur: 2.8 },
+          { f: 780, g: 0.65, type: 'sine' as OscillatorType, dur: 2.4 },
+          { f: 1040, g: 0.95, type: 'triangle' as OscillatorType, dur: 2.2 },
+          { f: 1560, g: 0.6, type: 'sine' as OscillatorType, dur: 1.8 },
+          { f: 2080, g: 0.45, type: 'sine' as OscillatorType, dur: 1.4 },
+          { f: 3120, g: 0.3, type: 'triangle' as OscillatorType, dur: 0.9 },
         ];
 
-        harmonics.forEach(({ f, g, dur }) => {
+        harmonics.forEach(({ f, g, type, dur }) => {
           const osc = ctx.createOscillator();
           const gain = ctx.createGain();
 
-          osc.type = 'sine';
+          osc.type = type;
           osc.frequency.setValueAtTime(f, now);
-          osc.frequency.exponentialRampToValueAtTime(f * 0.98, now + dur);
+          osc.frequency.exponentialRampToValueAtTime(f * 0.985, now + dur);
 
           gain.gain.setValueAtTime(g, now);
           gain.gain.exponentialRampToValueAtTime(0.0001, now + dur);
 
           osc.connect(gain);
-          gain.connect(ctx.destination);
+          gain.connect(dest);
 
           osc.start(now);
           osc.stop(now + dur + 0.05);
         });
       });
     },
-    // Ascending crystalline attunement chord arpeggio
+    // Ascending crystalline attunement chord arpeggio with high volume & octave warmth
     attune: () => {
-      playSafeSound((ctx, now) => {
-        const notes = [440, 554.37, 659.25, 880];
-        notes.forEach((f, i) => {
-          const t = now + i * 0.07;
+      stopActiveSound(20);
+      playSafeSound((ctx, now, dest) => {
+        const notes = [
+          { f: 440, delay: 0.0 },
+          { f: 554.37, delay: 0.08 },
+          { f: 659.25, delay: 0.16 },
+          { f: 880, delay: 0.24 },
+          { f: 1108.73, delay: 0.32 },
+        ];
+        notes.forEach(({ f, delay }) => {
+          const t = now + delay;
           const osc = ctx.createOscillator();
+          const subOsc = ctx.createOscillator();
           const gain = ctx.createGain();
 
-          osc.type = 'sine';
+          osc.type = 'triangle';
           osc.frequency.setValueAtTime(f, t);
-          osc.frequency.exponentialRampToValueAtTime(f * 1.02, t + 0.3);
+          osc.frequency.exponentialRampToValueAtTime(f * 1.015, t + 0.35);
+
+          subOsc.type = 'sine';
+          subOsc.frequency.setValueAtTime(f / 2, t);
 
           gain.gain.setValueAtTime(0.001, t);
-          gain.gain.linearRampToValueAtTime(0.28, t + 0.03);
-          gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.8);
+          gain.gain.linearRampToValueAtTime(1.1, t + 0.03);
+          gain.gain.exponentialRampToValueAtTime(0.0001, t + 1.1);
 
           osc.connect(gain);
-          gain.connect(ctx.destination);
+          subOsc.connect(gain);
+          gain.connect(dest);
 
           osc.start(t);
-          osc.stop(t + 0.85);
+          osc.stop(t + 1.15);
+          subOsc.start(t);
+          subOsc.stop(t + 1.15);
         });
       });
     },
-    // Snappy mechanical click for button presses and navigation
+    // Snappy mechanical click for button presses and navigation with punchy presence
     click: () => {
-      playSafeSound((ctx, now) => {
+      playSafeSound((ctx, now, dest) => {
         const osc = ctx.createOscillator();
+        const lowOsc = ctx.createOscillator();
         const gain = ctx.createGain();
 
         osc.type = 'triangle';
-        osc.frequency.setValueAtTime(880, now);
-        osc.frequency.exponentialRampToValueAtTime(240, now + 0.06);
+        osc.frequency.setValueAtTime(1200, now);
+        osc.frequency.exponentialRampToValueAtTime(220, now + 0.06);
 
-        gain.gain.setValueAtTime(0.35, now);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.06);
+        lowOsc.type = 'sine';
+        lowOsc.frequency.setValueAtTime(380, now);
+        lowOsc.frequency.exponentialRampToValueAtTime(90, now + 0.07);
+
+        gain.gain.setValueAtTime(1.0, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.07);
 
         osc.connect(gain);
-        gain.connect(ctx.destination);
+        lowOsc.connect(gain);
+        gain.connect(dest);
 
         osc.start(now);
-        osc.stop(now + 0.07);
+        osc.stop(now + 0.08);
+        lowOsc.start(now);
+        lowOsc.stop(now + 0.08);
       });
     },
-    // Authentic volcanic explosion audio directly from gemini_generated_video_b28265e7.mp4 trimmed to 2.8s
+    // Volcanic explosion audio boosted to high volume with reliable procedural fallback
     volcano: () => {
       playExclusiveTrack(
         () => volcanoAudioBuffer,
         () => volcanoAudioEl,
         '/volcano_eruption.mp4',
         2.8,
-        1.0,
+        2.4,
         playProceduralCalderaExplosion
       );
     },
     bomb: () => {
       audio.volcano();
     },
-    // Roaring waterfall cascade (pure rushing white water cascade with zero bubble/droplet pops)
+    // Roaring waterfall cascade with deep rushing body and splashing froth
     waterfall: () => {
       stopActiveSound(25);
-      playSafeSound((ctx, now) => {
+      playSafeSound((ctx, now, dest) => {
         const dur = 2.8;
         const bufferSize = Math.floor(ctx.sampleRate * dur);
         const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
         const data = buffer.getChannelData(0);
         for (let i = 0; i < bufferSize; i++) {
-          data[i] = (Math.random() * 2 - 1) * 0.7;
+          data[i] = (Math.random() * 2 - 1) * 0.9;
         }
 
         const noise = ctx.createBufferSource();
         noise.buffer = buffer;
 
-        // Master gain for exclusive audio tracking and stopping
-        const masterGain = ctx.createGain();
-        masterGain.gain.setValueAtTime(1.0, now);
+        // Master gain for waterfall
+        const waterfallMaster = ctx.createGain();
+        waterfallMaster.gain.setValueAtTime(2.2, now);
 
         // 1. Deep rushing hydraulic body
         const lowFilter = ctx.createBiquadFilter();
         lowFilter.type = 'lowpass';
-        lowFilter.frequency.setValueAtTime(420, now);
-        lowFilter.Q.value = 1.2;
+        lowFilter.frequency.setValueAtTime(450, now);
+        lowFilter.Q.value = 1.4;
 
         const lowGain = ctx.createGain();
         lowGain.gain.setValueAtTime(0.01, now);
-        lowGain.gain.linearRampToValueAtTime(0.55, now + 0.25);
-        lowGain.gain.setValueAtTime(0.5, now + dur - 0.4);
+        lowGain.gain.linearRampToValueAtTime(0.95, now + 0.2);
+        lowGain.gain.setValueAtTime(0.9, now + dur - 0.4);
         lowGain.gain.exponentialRampToValueAtTime(0.001, now + dur);
 
         // 2. Continuous splashing spray & froth cascade
         const sprayFilter = ctx.createBiquadFilter();
         sprayFilter.type = 'bandpass';
-        sprayFilter.frequency.setValueAtTime(740, now);
-        sprayFilter.Q.value = 0.85;
+        sprayFilter.frequency.setValueAtTime(820, now);
+        sprayFilter.Q.value = 0.9;
 
         const sprayGain = ctx.createGain();
         sprayGain.gain.setValueAtTime(0.01, now);
-        sprayGain.gain.linearRampToValueAtTime(0.48, now + 0.2);
-        sprayGain.gain.setValueAtTime(0.45, now + dur - 0.35);
+        sprayGain.gain.linearRampToValueAtTime(0.85, now + 0.15);
+        sprayGain.gain.setValueAtTime(0.8, now + dur - 0.35);
         sprayGain.gain.exponentialRampToValueAtTime(0.001, now + dur);
+
+        // 3. Crisp mist shimmer
+        const mistFilter = ctx.createBiquadFilter();
+        mistFilter.type = 'highpass';
+        mistFilter.frequency.setValueAtTime(1600, now);
+        mistFilter.Q.value = 0.7;
+
+        const mistGain = ctx.createGain();
+        mistGain.gain.setValueAtTime(0.01, now);
+        mistGain.gain.linearRampToValueAtTime(0.45, now + 0.25);
+        mistGain.gain.setValueAtTime(0.4, now + dur - 0.35);
+        mistGain.gain.exponentialRampToValueAtTime(0.001, now + dur);
 
         noise.connect(lowFilter);
         lowFilter.connect(lowGain);
-        lowGain.connect(masterGain);
+        lowGain.connect(waterfallMaster);
 
         noise.connect(sprayFilter);
         sprayFilter.connect(sprayGain);
-        sprayGain.connect(masterGain);
+        sprayGain.connect(waterfallMaster);
 
-        masterGain.connect(ctx.destination);
+        noise.connect(mistFilter);
+        mistFilter.connect(mistGain);
+        mistGain.connect(waterfallMaster);
+
+        waterfallMaster.connect(dest);
 
         activeSourceNode = noise;
-        activeGainNode = masterGain;
+        activeGainNode = waterfallMaster;
 
         noise.onended = () => {
           if (activeSourceNode === noise) {
@@ -586,24 +758,26 @@ function createProceduralAudio() {
         noise.stop(now + dur);
       });
     },
-    // Howling mountain wind blowing sound directly from "wind_blowing.wav"
+    // Howling mountain wind blowing sound boosted to high volume with procedural fallback
     wind: () => {
       playExclusiveTrack(
         () => windAudioBuffer,
         () => windAudioEl,
         '/wind_blowing.wav',
         2.8,
-        1.0
+        2.4,
+        playProceduralMountainWind
       );
     },
-    // Birds chirping sound directly from "forest_bird_chirp.wav"
+    // Birds chirping sound boosted to high volume with procedural fallback
     birds: () => {
       playExclusiveTrack(
         () => birdAudioBuffer,
         () => birdAudioEl,
         '/forest_bird_chirp.wav',
         2.8,
-        1.0
+        2.5,
+        playProceduralForestBirds
       );
     },
   };
@@ -645,11 +819,13 @@ export const LedgerProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   }, [currentDomain]);
 
   useEffect(() => {
+    preloadAllCodexAudio();
     const handleGesture = () => {
       const ctx = getSharedAudioContext();
       if (ctx && ctx.state === 'suspended') {
         ctx.resume().catch(() => {});
       }
+      preloadAllCodexAudio();
     };
     window.addEventListener('click', handleGesture, { passive: true });
     window.addEventListener('keydown', handleGesture, { passive: true });

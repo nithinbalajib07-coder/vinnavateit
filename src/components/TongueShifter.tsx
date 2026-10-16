@@ -174,7 +174,7 @@ export const TongueShifter: React.FC = () => {
 
     // 1. Play procedural resonant harmonic tone
     if (soundEnabled) {
-      playSafeSound((ctx, now) => {
+      playSafeSound((ctx, now, dest) => {
         const baseFreq =
           currentDomain === 'emberhold'
             ? 220
@@ -184,18 +184,29 @@ export const TongueShifter: React.FC = () => {
             ? 380
             : 300;
         const osc = ctx.createOscillator();
+        const subOsc = ctx.createOscillator();
         const gain = ctx.createGain();
-        osc.type = 'sine';
+
+        osc.type = 'triangle';
         osc.frequency.setValueAtTime(baseFreq, now);
         osc.frequency.exponentialRampToValueAtTime(baseFreq * 1.5, now + 0.15);
         osc.frequency.exponentialRampToValueAtTime(baseFreq * 1.2, now + 0.35);
+
+        subOsc.type = 'sine';
+        subOsc.frequency.setValueAtTime(baseFreq * 0.5, now);
+
         gain.gain.setValueAtTime(0.001, now);
-        gain.gain.linearRampToValueAtTime(0.35, now + 0.05);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.55);
+        gain.gain.linearRampToValueAtTime(0.95, now + 0.05);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
+
         osc.connect(gain);
-        gain.connect(ctx.destination);
+        subOsc.connect(gain);
+        gain.connect(dest || ctx.destination);
+
         osc.start(now);
-        osc.stop(now + 0.6);
+        osc.stop(now + 0.65);
+        subOsc.start(now);
+        subOsc.stop(now + 0.65);
       });
     }
 
@@ -205,6 +216,7 @@ export const TongueShifter: React.FC = () => {
         window.speechSynthesis.cancel();
         window.speechSynthesis.resume();
         const utterance = new SpeechSynthesisUtterance(text);
+        utterance.volume = 1.0;
         (window as unknown as { _curUtterance?: SpeechSynthesisUtterance })._curUtterance = utterance;
         if (currentDomain === 'emberhold') {
           utterance.pitch = 0.72;
